@@ -55,83 +55,91 @@ window.onload = function () {
     msgDiv.style.opacity = "1";
   }
 
-  // --- Submit Handler ---
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+   // --- Submit Handler ---
+form.addEventListener("submit", function (e) {
+  e.preventDefault();
 
-    const name = document.getElementById("name").value.trim();
-    const mobile = document.getElementById("mobile").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const date = dateField.value;
-    const time = timeField.value;
-    const status = statusField.value;
+  const name = document.getElementById("name").value.trim();
+  const mobile = document.getElementById("mobile").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const date = dateField.value;
+  const time = timeField.value;
+  const status = statusField.value;
 
-    if (!savedUser) {
-      localStorage.setItem("userInfo", JSON.stringify({ name, mobile, email }));
-    }
+  if (!savedUser) {
+    localStorage.setItem("userInfo", JSON.stringify({ name, mobile, email }));
+  }
 
-    // --- Prevent double In ---
-    const lastDate = localStorage.getItem("lastAttendanceDate");
-    if (lastDate === date && status === "In") {
-      showMessage("⚠️ Attendance already recorded for today.", "red");
+  // --- In ---
+  if (status === "In") {
+    const sendData = {
+      name,
+      mobile,
+      email,
+      date,
+      inTime: time,
+      outTime: "",
+    };
+
+    // Save locally
+    localStorage.setItem("attendanceData", JSON.stringify(sendData));
+
+    // Send "In" data immediately to Google Sheet
+    fetch("https://script.google.com/macros/s/AKfycbwrjg32NYYolDRp8WfJ85-daCfSfduccRVNwZqQTVABDT_aX_BblGSldz0OYT5q8phn/exec", {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(sendData),
+    })
+    .then(() => {
+      showMessage(`✅  submitted successfully `, "green");
+      statusField.value = "Out"; // change for next submission
+    })
+    .catch(error => {
+      showMessage(`❌ Network error: ${error.message}`, "red");
+      console.error("Error submitting In-Time:", error);
+    });
+
+    return;
+  }
+
+  // --- Out ---
+  if (status === "Out") {
+    const stored = JSON.parse(localStorage.getItem("attendanceData"));
+    if (!stored) {
+      showMessage("⚠️ Please mark In first!", "red");
       return;
     }
 
-    // --- In ---
-    if (status === "In") {
-  localStorage.setItem(
-    "attendanceData",
-    JSON.stringify({ name, mobile, email, date, inTime: time })
-  );
+    const outTime = time;
+    const sendData = {
+      name: stored.name,
+      mobile: stored.mobile,
+      email: stored.email,
+      date: stored.date,
+      inTime: stored.inTime,
+      outTime,
+    };
 
-  // Redirect to success page
-  window.location.href = "success.html";
+    form.style.display = "none";
 
-  return;
-}
-
-    // --- Out ---
-    if (status === "Out") {
-      const stored = JSON.parse(localStorage.getItem("attendanceData"));
-      if (!stored) {
-        showMessage("⚠️ Please mark In first!", "red");
-        return;
-      }
-
-      const outTime = time;
-      const sendData = {
-        name: stored.name,
-        mobile: stored.mobile,
-        email: stored.email,
-        date: stored.date,
-        inTime: stored.inTime,
-        outTime: outTime,
-      };
-
-      // Hide form immediately
-      form.style.display = "none";
-
-      // Send to Google Sheet
-      fetch("https://script.google.com/macros/s/AKfycbwrjg32NYYolDRp8WfJ85-daCfSfduccRVNwZqQTVABDT_aX_BblGSldz0OYT5q8phn/exec", {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" }, // Changed to text/plain for better compatibility with no-cors
-        body: JSON.stringify(sendData),
-      })
-      .then(() => {
-        // Show Out-Time success only
-        showMessage(`✅ Submitted successfully at ${outTime}`, "green");
-
-        // Save today's completion to prevent re-entry
-        localStorage.removeItem("attendanceData");
-        localStorage.setItem("lastAttendanceDate", date);
-      })
-      .catch(error => {
-        // Show error message and re-enable form
-        form.style.display = "block";
-        showMessage(`❌ Network error: ${error.message || "Failed to submit out time"}. Please try again.`, "red");
-        console.error("Submission error:", error);
-      });
-    }
-  });
+    // Send to Google Sheet
+    fetch("https://script.google.com/macros/s/AKfycbwrjg32NYYolDRp8WfJ85-daCfSfduccRVNwZqQTVABDT_aX_BblGSldz0OYT5q8phn/exec", {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(sendData),
+    })
+    .then(() => {
+      showMessage(`✅  submitted successfully `, "green");
+      localStorage.removeItem("attendanceData");
+      localStorage.setItem("lastAttendanceDate", date);
+    })
+    .catch(error => {
+      form.style.display = "block";
+      showMessage(`❌ Network error: ${error.message}`, "red");
+      console.error("Error submitting Out-Time:", error);
+    });
+  }
+});
 };
