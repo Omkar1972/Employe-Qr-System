@@ -1,3 +1,4 @@
+
 window.onload = function () {
   const form = document.getElementById("attendanceForm");
   const dateField = document.getElementById("date");
@@ -35,12 +36,12 @@ window.onload = function () {
   }
 
   // --- Check if already submitted today ---
-  const lastAttendanceDate = localStorage.getItem("lastAttendanceDate");
-  if (lastAttendanceDate === formattedDate) {
-    form.style.display = "none";
-    showMessage("✅ You already submitted your attendance for today.", "blue");
-    return;
-  }
+  // const lastAttendanceDate = localStorage.getItem("lastAttendanceDate");
+  // if (lastAttendanceDate === formattedDate) {
+  //   form.style.display = "none";
+  //   showMessage("✅ You already submitted your attendance for today.", "blue");
+  //   return;
+  // }
 
   // --- Default Status ---
   const storedAttendance = JSON.parse(localStorage.getItem("attendanceData"));
@@ -54,6 +55,22 @@ window.onload = function () {
     msgDiv.style.color = color;
     msgDiv.style.opacity = "1";
   }
+
+
+// --- NEW: Loader Function ---
+function toggleLoading(isLoading) {
+  const loader = document.getElementById("loader"); // Assume an element with id="loader" exists
+  if (loader) {
+    loader.style.display = isLoading ? "block" : "none";
+  }
+  // Optionally, disable the submit button
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = isLoading;
+    submitButton.innerText = isLoading ? "Submitting..." : "Submit";
+  }
+}
+// ------------------------------
 
    // --- Submit Handler ---
 form.addEventListener("submit", function (e) {
@@ -84,24 +101,46 @@ form.addEventListener("submit", function (e) {
     // Save locally
     localStorage.setItem("attendanceData", JSON.stringify(sendData));
 
+   // Show loader
+    toggleLoading(true);
+
+
     // Send "In" data immediately to Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbwrjg32NYYolDRp8WfJ85-daCfSfduccRVNwZqQTVABDT_aX_BblGSldz0OYT5q8phn/exec", {
+ 
+    fetch("https://script.google.com/macros/s/AKfycbxEqA0uL7JT2yH3bfFhhttsrwQT9fXqiVHDkXhKxsPM1qXyJptZKeU2bmEOyVsjOd3u/exec", {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
+     
       body: JSON.stringify(sendData),
     })
     .then(() => {
-      showMessage(`✅  submitted successfully `, "green");
-      statusField.value = "Out"; // change for next submission
+
+      // Hide loader
+      toggleLoading(false);
+
+      window.location.href = "success.html";
+
+       showMessage(`✅  submitted successfully `, "green");
+       statusField.value = "Out"; // change for next submission
     })
     .catch(error => {
+
+      // Hide loader on error
+      toggleLoading(false);
+
       showMessage(`❌ Network error: ${error.message}`, "red");
       console.error("Error submitting In-Time:", error);
     });
 
     return;
   }
+
+
+  ////
+
+
+  ///
 
   // --- Out ---
   if (status === "Out") {
@@ -118,28 +157,42 @@ form.addEventListener("submit", function (e) {
       email: stored.email,
       date: stored.date,
       inTime: stored.inTime,
-      outTime,
+      outTime: outTime,
     };
 
     form.style.display = "none";
 
+    // ⭐ Show the loader before sending the request
+    toggleLoading(true);
+
     // Send to Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbwrjg32NYYolDRp8WfJ85-daCfSfduccRVNwZqQTVABDT_aX_BblGSldz0OYT5q8phn/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbxEqA0uL7JT2yH3bfFhhttsrwQT9fXqiVHDkXhKxsPM1qXyJptZKeU2bmEOyVsjOd3u/exec", {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
+     headers: { "Content-Type": "text/plain" },
+    
       body: JSON.stringify(sendData),
     })
     .then(() => {
-      showMessage(`✅  submitted successfully `, "green");
-      localStorage.removeItem("attendanceData");
-      localStorage.setItem("lastAttendanceDate", date);
+
+      // ⭐ Hide the loader (though redirection will happen quickly)
+      toggleLoading(false);
+    
+       window.location.href = "success.html";  
+
+        showMessage(`✅  submitted successfully `, "green");
+       localStorage.removeItem("attendanceData");
+       localStorage.setItem("lastAttendanceDate", date);
     })
     .catch(error => {
+
+      // ⭐ Hide the loader on error
+      toggleLoading(false);
+
       form.style.display = "block";
       showMessage(`❌ Network error: ${error.message}`, "red");
       console.error("Error submitting Out-Time:", error);
     });
   }
-});
+ });
 };
