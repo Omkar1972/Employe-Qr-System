@@ -35,13 +35,13 @@ window.onload = function () {
     document.getElementById("email").disabled = true;
   }
 
-  // --- Check if already submitted today ---
-  // const lastAttendanceDate = localStorage.getItem("lastAttendanceDate");
-  // if (lastAttendanceDate === formattedDate) {
-  //   form.style.display = "none";
-  //   showMessage("✅ You already submitted your attendance for today.", "blue");
-  //   return;
-  // }
+   //--- Check if already submitted today ---
+   const lastAttendanceDate = localStorage.getItem("lastAttendanceDate");
+   if (lastAttendanceDate === formattedDate) {
+     form.style.display = "none";
+     showMessage("✅ You already submitted your attendance for today.", "blue");
+     return;
+   }
 
   // --- Default Status ---
   const storedAttendance = JSON.parse(localStorage.getItem("attendanceData"));
@@ -107,7 +107,7 @@ form.addEventListener("submit", function (e) {
 
     // Send "In" data immediately to Google Sheet
  
-    fetch("https://script.google.com/macros/s/AKfycbxEqA0uL7JT2yH3bfFhhttsrwQT9fXqiVHDkXhKxsPM1qXyJptZKeU2bmEOyVsjOd3u/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbybugpEBbLntOFcMUvvjKcfoNzEfRkrvCUPIVcsa9INXMEjdO3KZ_pllpJlQmfRbFk8/exec", {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain" },
@@ -137,11 +137,6 @@ form.addEventListener("submit", function (e) {
   }
 
 
-  ////
-
-
-  ///
-
   // --- Out ---
   if (status === "Out") {
     const stored = JSON.parse(localStorage.getItem("attendanceData"));
@@ -166,7 +161,7 @@ form.addEventListener("submit", function (e) {
     toggleLoading(true);
 
     // Send to Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbxEqA0uL7JT2yH3bfFhhttsrwQT9fXqiVHDkXhKxsPM1qXyJptZKeU2bmEOyVsjOd3u/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbybugpEBbLntOFcMUvvjKcfoNzEfRkrvCUPIVcsa9INXMEjdO3KZ_pllpJlQmfRbFk8/exec", {
       method: "POST",
       mode: "no-cors",
      headers: { "Content-Type": "text/plain" },
