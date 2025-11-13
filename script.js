@@ -168,7 +168,7 @@ window.onload = function () {
         })
         .then(() => {
           toggleLoading(false);
-          showMessage("✅ 'In' marked successfully!", "green");
+          showMessage("✅ 'In'successfully!", "green");
           statusField.value = "Out";
           // Do NOT mark lastSubmission yet
           window.location.href = "success.html";
@@ -204,7 +204,7 @@ window.onload = function () {
           toggleLoading(false);
           localStorage.removeItem("attendanceData");
           localStorage.setItem("lastSubmission", JSON.stringify({ date, completed: true }));
-          showMessage("✅ 'Out' marked successfully!", "green");
+          showMessage("✅ 'Out'successfully!", "green");
           window.location.href = "success.html";
         })
         .catch((error) => {
