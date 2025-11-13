@@ -13,7 +13,6 @@ window.onload = function () {
   const ALLOWED_LOCATIONS = [
     { lat: 21.13092947063975, lng: 79.11654813692904, radius: 1500 }, // Tiranga Branch
     { lat: 21.115247212063938, lng: 79.01166670397053, radius: 1500 }, // Bansi Branch
-    { lat: 21.132891629861884, lng: 79.11671430170571, radius: 1500 }  // Testing Location
   ];
 
   // --- Auto Date ---
@@ -27,7 +26,7 @@ window.onload = function () {
     return now.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit"
+      second: "2-digit",
     });
   }
   setInterval(() => {
@@ -59,9 +58,9 @@ window.onload = function () {
     document.getElementById("email").disabled = true;
   }
 
-  // --- Already Submitted Check ---
+  // --- Already Submitted Check (only after Out) ---
   const lastSubmission = JSON.parse(localStorage.getItem("lastSubmission"));
-  if (lastSubmission && lastSubmission.date === formattedDate) {
+  if (lastSubmission && lastSubmission.date === formattedDate && lastSubmission.completed) {
     msgDiv.innerText = "✅ You have already submitted today's attendance!";
     msgDiv.style.display = "block";
     form.style.display = "none";
@@ -75,19 +74,19 @@ window.onload = function () {
 
   // --- Distance Calculator ---
   function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Earth radius in meters
+    const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
     const a =
-      Math.sin(Δφ / 2) ** 2 +
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
       Math.cos(φ1) * Math.cos(φ2) *
-      Math.sin(Δλ / 2) ** 2;
+      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // --- Check Location (multiple allowed) ---
+  // --- Check Location (supports multiple allowed locations) ---
   function checkLocation(callback) {
     toggleLoading(true, "Checking location...");
 
@@ -101,8 +100,6 @@ window.onload = function () {
       (position) => {
         const userLat = position.coords.latitude;
         const userLng = position.coords.longitude;
-
-        console.log("Your Coordinates:", userLat, userLng);
 
         let allowed = false;
         for (const loc of ALLOWED_LOCATIONS) {
@@ -126,18 +123,12 @@ window.onload = function () {
       (error) => {
         toggleLoading(false);
         showMessage("❌ Unable to access location. Please allow GPS.", "red");
-        console.error("Location error:", error.message);
         if (callback) callback(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
       }
     );
   }
 
-  // --- Auto check location on form load ---
+  // --- Auto check location on load ---
   checkLocation();
 
   // --- Submit Handler ---
@@ -160,19 +151,16 @@ window.onload = function () {
       localStorage.setItem("userInfo", JSON.stringify({ name, mobile, email }));
     }
 
-    // Check location again before submitting
     checkLocation((allowed) => {
       if (!allowed) return;
 
       toggleLoading(true, "Submitting...");
 
-      const scriptURL = "https://script.google.com/macros/s/AKfycbybugpEBbLntOFcMUvvjKcfoNzEfRkrvCUPIVcsa9INXMEjdO3KZ_pllpJlQmfRbFk8/exec";
-
       if (status === "In") {
         const sendData = { name, mobile, email, date, inTime: time, outTime: "" };
         localStorage.setItem("attendanceData", JSON.stringify(sendData));
 
-        fetch(scriptURL, {
+        fetch("https://script.google.com/macros/s/AKfycbybugpEBbLntOFcMUvvjKcfoNzEfRkrvCUPIVcsa9INXMEjdO3KZ_pllpJlQmfRbFk8/exec", {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
@@ -180,9 +168,9 @@ window.onload = function () {
         })
         .then(() => {
           toggleLoading(false);
-          showMessage("✅ Attendance submitted successfully!", "green");
+          showMessage("✅ 'In' marked successfully!", "green");
           statusField.value = "Out";
-          localStorage.setItem("lastSubmission", JSON.stringify({ date }));
+          // Do NOT mark lastSubmission yet
           window.location.href = "success.html";
         })
         .catch((error) => {
@@ -203,10 +191,10 @@ window.onload = function () {
           email: stored.email,
           date: stored.date,
           inTime: stored.inTime,
-          outTime: time
+          outTime: time,
         };
 
-        fetch(scriptURL, {
+        fetch("https://script.google.com/macros/s/AKfycbybugpEBbLntOFcMUvvjKcfoNzEfRkrvCUPIVcsa9INXMEjdO3KZ_pllpJlQmfRbFk8/exec", {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
@@ -215,8 +203,8 @@ window.onload = function () {
         .then(() => {
           toggleLoading(false);
           localStorage.removeItem("attendanceData");
-          localStorage.setItem("lastSubmission", JSON.stringify({ date }));
-          showMessage("✅ Attendance submitted successfully!", "green");
+          localStorage.setItem("lastSubmission", JSON.stringify({ date, completed: true }));
+          showMessage("✅ 'Out' marked successfully!", "green");
           window.location.href = "success.html";
         })
         .catch((error) => {
@@ -227,39 +215,6 @@ window.onload = function () {
     });
   });
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
